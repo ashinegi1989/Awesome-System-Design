@@ -1,10 +1,9 @@
 # Awesome-System-Design
 System Design Interview
 
+#Question 1
 𝐇𝐨𝐰 𝐭𝐨 𝐢𝐦𝐩𝐫𝐨𝐯𝐞 𝐝𝐚𝐭𝐚𝐛𝐚𝐬𝐞 𝐩𝐞𝐫𝐟𝐨𝐫𝐦𝐚𝐧𝐜𝐞?
-
 Here are the top ways to improve database performance:
-
 1. Indexing
 Create the right indexes based on query patterns to speed up data retrieval.
 
