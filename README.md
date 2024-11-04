@@ -40,3 +40,40 @@ Avoid excessive indexing, which can slow down write operations; use indexes judi
 
 12. Archiving Old Data
 Move infrequently accessed data to an archive to keep the active database smaller and faster.
+
+#Question 2
+20 Popular Open Source Projects Started or Supported By Big Companies
+
+Google
+- Kubernetes
+- TensorFlow
+- Go
+- Angular
+
+Meta
+- React
+- PyTorch
+- GraphQL
+- Cassandra
+
+Microsoft
+- VSCode
+- TypeScript
+- Playwright
+
+Netflix
+- Chaos Monkey
+- Hystrix
+- Zuul
+
+LinkedIn
+- Kafka
+- Samza
+- Pinot
+
+RedHat
+- Ansible
+- OpenShift
+- Ceph Storage
+
+
