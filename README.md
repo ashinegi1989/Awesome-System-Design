@@ -76,4 +76,23 @@ RedHat
 - OpenShift
 - Ceph Storage
 
+3: List of Distributed databse vs Reqular Database
+Here are some examples:
+
+Distributed Databases:
+
+1. Google Bigtable
+2. Apache Cassandra
+3. Apache HBase
+4. MongoDB
+5. Amazon DynamoDB
+
+Regular Databases:
+
+1. MySQL
+2. PostgreSQL
+3. Microsoft SQL Server
+4. Oracle Database
+5. IBM DB2
+
 
