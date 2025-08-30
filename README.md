@@ -151,3 +151,36 @@ example:
 9. Vert.x
 10 years
 10. Tornado
+*****************
+
+*How Event Loop Handles Requests and Responses*
+
+When an event loop sends a request to a backend API, it doesn't maintain a persistent connection with the backend. Instead, it uses a mechanism called *async callbacks* or *async notifications* to handle responses.
+
+## Here's a high-level overview of the process:
+1. *Request Sent*: The event loop sends a request to the backend API.
+2. *Connection Closed*: The connection is closed after sending the request.
+3. *Backend Processing*: The backend API processes the request.
+4. *Response Sent*: The backend API sends a response back to the event loop.
+5. *Callback Notification*: The event loop is notified about the incoming response through a callback mechanism.
+
+## How Event Loop Gets Response without Maintaining Connection
+The event loop uses various techniques to get responses from the backend API without maintaining a persistent connection:
+
+1. *Polling*: The event loop can poll the backend API for responses.
+2. *Callbacks*: The backend API can use callbacks to notify the event loop about responses.
+3. *Async Notifications*: The event loop can receive async notifications from the backend API when a response is available.
+
+## Underlying Mechanisms
+The event loop uses underlying mechanisms like:
+
+1. *Socket Programming*: The event loop uses socket programming to send and receive data over the network.
+2. *TCP/IP*: The event loop relies on TCP/IP protocol to ensure reliable data transfer between the client and server.
+
+## How Event Loop Knows Response is Coming
+The event loop knows a response is coming through various mechanisms:
+
+1. *Socket Notifications*: The event loop receives notifications when data is available on the socket.
+2. *Callback Functions*: The event loop uses callback functions to handle responses.
+
+By using these mechanisms, the event loop can efficiently handle requests and responses without maintaining a persistent connection with the backend API.
