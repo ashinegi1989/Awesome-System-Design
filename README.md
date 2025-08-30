@@ -96,3 +96,25 @@ Regular Databases:
 5. IBM DB2
 
 
+******************
+Reverse proxy vs forward proxy
+
+Here are concise examples and tools for forward and reverse proxies:
+
+## Forward Proxy Example
+- *Squid*: A popular open-source forward proxy server.
+- *Use case*: Block access to specific websites, cache frequently accessed resources, and monitor internet usage.
+
+## Reverse Proxy Example
+- *NGINX*: A popular open-source reverse proxy server.
+- *Use case*: Distribute incoming traffic across multiple servers, improve security, and cache frequently accessed resources.
+
+## Tools
+- *NGINX*: Can be used as both a forward and reverse proxy.
+- *Squid*: Primarily used as a forward proxy.
+- *HAProxy*: A popular load balancer and reverse proxy.
+- *AWS Elastic Load Balancer (ELB)*: A cloud-based load balancer that can act as a reverse proxy.
+
+These tools can help you manage traffic, improve security, and optimize performance for your applications.
+
+
