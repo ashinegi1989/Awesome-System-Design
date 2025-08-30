@@ -117,4 +117,37 @@ Here are concise examples and tools for forward and reverse proxies:
 
 These tools can help you manage traffic, improve security, and optimize performance for your applications.
 
+**********************
+Event Loop
 
+Here's a concise explanation:
+
+## What is an Event Loop?
+An event loop is a design pattern that allows a program to handle multiple tasks and events concurrently by registering callbacks and processing them in a loop. It's a way to manage asynchronous operations and improve responsiveness.
+
+## Relation with Single Thread
+In single-threaded models, event loops are used to handle multiple tasks and events without blocking. The event loop yields control back to the program, allowing other tasks to be processed while waiting for I/O operations or other events to complete.
+
+## Example
+Here's an example of a single-threaded event loop in Node.js:
+const fs = require('fs');
+
+fs.readFile('file.txt', (err, data) => {
+  console.log(data.toString());
+});
+
+console.log('Reading file...');
+In this example, Node.js uses an event loop to handle the `readFile` operation asynchronously. While waiting for the file to be read, Node.js can process other tasks, such as logging "Reading file...". When the file is read, the callback is executed, logging the file contents
+
+example:
+1. Node.js
+2. JavaScript (web browsers)
+3. Redis
+4. Nginx
+5. libuv
+6. Twisted
+7. EventMachine
+8. Netty
+9. Vert.x
+10 years
+10. Tornado
