@@ -1,3 +1,4 @@
+ji
 # Awesome-System-Design
 System Design Interview
 
@@ -184,3 +185,7 @@ The event loop knows a response is coming through various mechanisms:
 2. *Callback Functions*: The event loop uses callback functions to handle responses.
 
 By using these mechanisms, the event loop can efficiently handle requests and responses without maintaining a persistent connection with the backend API.
+
+***********
+
+Memcached vs Redis
