@@ -586,4 +586,45 @@ to petabytes.
   ETL extraction tool layer.
 ================================================================================
 
+# 📑 System Design Note: Why "Database-as-a-Queue" is an Anti-Pattern
+
+## 🚨 The Core Problem
+Using a relational database (like **Amazon Aurora**) to act as a temporary retry queue for failed API payloads creates an architectural bottleneck known as **"Database-as-a-Queue."** While simple to implement initially, it degrades core database performance over time.
+
+---
+
+## 🛑 Why Aurora is Not Ideal for Retry Logs
+
+* **Performance Bottlenecks (Polling Overhead):** Background retry workers must constantly poll the database using `SELECT` queries (e.g., `WHERE status = 'FAILED'`). As the volume grows, constant scanning consumes high CPU and memory, taking resources away from critical user transactions.
+* **Table Bloat & Fragmentation:** Relational databases do not automatically shrink their physical files on disk when data is updated or deleted. High-frequency inserts, updates, and deletes create massive amounts of "dead space" (fragmentation).
+* **Row Locking Issues:** If multiple concurrent background workers attempt to grab the same failed transaction to process a retry, they will lock rows. This risks database deadlocks and system freezes.
+
+---
+
+## 📖 The "Notebook" Analogy (How Table Bloat Breaks Queries)
+
+Imagine an Aurora database table is a physical notebook written in ink, where deletions can only be made by crossing lines out.
+
+1. **Day 1 (Clean Notebook):** You have 5 failed API calls written on lines 1–5. The background worker reads 5 lines, retries them, and crosses them out. This takes milliseconds.
+2. **Month 3 (Bloated Notebook):** Over time, you have inserted, retried, and crossed out **1,000,000 failed rows**. Currently, you only have **5 active failures** that need a retry, but they are written all the way down on page 10,000. Pages 1 through 9,999 are filled entirely with crossed-out "dead space."
+3. **The Blocker:** When the retry worker searches for active failures, the database engine **still has to scan through all 10,000 pages of dead space** to locate those 5 valid rows. A query that used to take milliseconds now takes seconds and spikes database CPU to 100%.
+
+### 💥 The Business Impact
+While the database is choked scanning millions of past "ghost" rows to handle retries, real-time user actions (like account creations or money transfers) freeze and time out. The retry mechanism ends up causing *more* API failures.
+
+---
+
+## 🏆 Better Architectural Alternatives
+
+### 1. The Dead Letter Queue (DLQ) Pattern *(Recommended)*
+* **Design:** When the primary API fails, push the exact JSON request payload into an **AWS SQS (Simple Queue Service)** queue. 
+* **Benefit:** SQS natively handles concurrent reads without row-locking, clears processed messages instantly with zero storage fragmentation, and keeps your core database 100% clean.
+
+### 2. The Transactional Outbox Pattern
+* **Design:** Write the beneficiary data and an "Outbox event" to the database in the exact same transaction. Use a log tailing tool (like **Debezium** or an **AWS Lambda** reading the database WAL logs) to pick up the outbox row, hit the external API, and remove it.
+* **Benefit:** Guarantees "At-Least-Once Delivery" without causing application-level polling lag.
+
+### 3. In-Memory Key-Value Stores (Redis)
+* **Design:** Offload failed payloads to an **Amazon ElastiCache for Redis** Stream or Sorted Set.
+* **Benefit:** Processes millions of read/write operations per second entirely in RAM, isolating volatile retry traffic from persistent storage.
 
