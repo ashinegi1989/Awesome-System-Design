@@ -649,4 +649,35 @@ In a microservice architecture, managing data isolation is critical. Our enginee
 ## 🏗️ How It Works in Our Infrastructure
 We deploy a single, powerful relational database instance (e.g., **Amazon Aurora**). Inside this shared cluster, we draw strict virtual boundaries by assigning each microservice its own independent, isolated database schema.
 
+*********
+
+### Why Database Locking Exists: The Problem & Solutions
+
+#### The Core Problem: The Double-Spending Bug
+Imagine a bank account has **$100**. Two people try to withdraw money at the exact same millisecond:
+1. **User A** wants to withdraw $20. They read the balance: **$100**.
+2. **User B** wants to withdraw $30. They read the balance: **$100** (at the exact same time).
+3. **User A** calculates $100 - $20 = $80, and saves **$80** to the database.
+4. **User B** calculates $100 - $30 = $70, and saves **$70** to the database.
+
+**The Bug:** User B accidentally overwrites User A's work. The account now has $70, but $50 total was taken out. $20 vanished. This is called a **Race Condition**.
+
+---
+
+### How Different Databases Fix This (Solutions)
+
+#### 1. Pessimistic Locking (The "Wait in Line" Fix)
+* **What it does:** The database physically freezes the data row the moment User A touches it. User B is forced to stand in a queue and wait until User A is completely finished.
+* **Real-World Analogy:** A public restroom with a physical door lock. If someone is inside, you must wait outside.
+* **Example Databases:** PostgreSQL, MySQL, SQL Server, Oracle.
+
+#### 2. Optimistic Locking (The "Receipt Version" Fix)
+* **What it does:** The database never freezes data or blocks anyone. Instead, it gives every row a hidden version number (like `Version 1`). When you try to save your update, the database checks if the version number is still the same. If someone else changed it first, your save fails and you must try again.
+* **Real-World Analogy:** Google Docs. Two people can type at the same time, but if you try to save over an outdated version of a file, the system warns you.
+* **Example Databases:** MongoDB, Amazon DynamoDB, Google Cloud Firestore.
+
+#### 3. Single-Threaded (The "Single File Line" Fix)
+* **What it does:** The database doesn't use locks because it physically processes only one single instruction at a time. It handles User A's request entirely, and then handles User B's request right after.
+* **Real-World Analogy:** A strict grocery store checkout lane with only one cashier. No two customers can be served at the same millisecond.
+* **Example Databases:** Redis.
 
