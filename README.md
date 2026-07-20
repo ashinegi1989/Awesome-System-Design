@@ -813,3 +813,102 @@ If you want to expand this layout into a true operational database server, you w
 * **A Serialization Protocol**: Create a simple text format (like RESP used by Redis) to parse string commands over the network wire.
 * **Disk Persistence**: Write data snapshots to a background file asynchronously (like an RDB or AOF log) so data is not wiped out when the server reboots.
 
+### How Spring @Transactional Interacts with Database Locks
+
+#### The Core Concept: Spring Does Not Lock, It Manages The Lock
+The database is the one that physically creates the locks. The Spring `@Transactional` annotation acts as the **manager**. It controls **when the lock starts, how long the lock stays alive, and when the lock is released.**
+
+Here is the exact correlation between Spring's properties and the database locking mechanisms explained earlier.
+
+---
+
+### 1. The Correlation Breakdown
+
+#### A. Keeping Locks Alive (The Lifecycle Manager)
+* **The Database Behavior:** Normally, a raw SQL update query locks a row, updates it, and unlocks it immediately. 
+* **What Spring `@Transactional` Does:** It forces the database connection to hold onto that lock across your entire Java method. The lock is only released when the Java method hits the closing bracket and Spring runs a `COMMIT` or `ROLLBACK`. This guarantees that data modified at the beginning of your method cannot be changed by someone else while the rest of your Java code is still executing.
+
+#### B. The `isolation` Property (Controlling Visibility)
+* **The Database Behavior:** Prevents you from reading uncommitted "dirty" data or changing data that another user is currently editing, depending on how strict you choose to be.
+* **What Spring `@Transactional` Does:** You can configure `@Transactional(isolation = Isolation.IsolationLevel)` to tell the database connection how strict it should be when concurrent transactions try to read or write data that is currently being handled by your method.
+  * `Isolation.READ_COMMITTED` (Default): Your transaction only reads data that has already been saved. If another transaction has a lock on a row, you see the old version until they commit.
+  * `Isolation.REPEATABLE_READ`: If you read a row at the start of your method, it is locked against updates from other users so it remains identical if you read it again later.
+  * `Isolation.SERIALIZABLE`: The strictest level. It forces the database to behave as if it were single-threaded, completely eliminating concurrency bugs at the cost of speed.
+
+#### C. `LockModeType.PESSIMISTIC_WRITE` (The "Wait in Line" Fix)
+* **The Database Behavior:** Triggers a native `FOR UPDATE` query, physically locking the row.
+* **What Spring `@Transactional` Does:** When you put this annotation on a repository method inside a Spring transaction, Spring explicitly commands the database to freeze that row immediately upon fetching it, forcing all other threads to wait in a queue.
+
+#### D. `@Version` + `LockModeType.OPTIMISTIC` (The "Version Stamp" Fix)
+* **The Database Behavior:** Bypasses all row-level locks on read, but runs a conditional `WHERE version = current_version` check on update.
+* **What Spring `@Transactional` Does:** Spring automatically tracks a hidden version number column on your Java object. If the database update fails because the version changed while the Java method was running, Spring automatically intercepts the error and throws an `OptimisticLockingFailureException`.
+
+---
+
+### Code Implementation Layout for Storage
+
+#### Option A: Pessimistic Row Lock (Physical Database Locking)
+```java
+// 1. Repository Layer
+@Repository
+public interface AccountRepository extends JpaRepository<Account, Long> {
+    
+    @Lock(LockModeType.PESSIMISTIC_WRITE) // Spring appends "FOR UPDATE" to the SQL query
+    @Query("SELECT a FROM Account a WHERE a.id = :id")
+    Optional<Account> findByIdWithLock(@Param("id") Long id);
+}
+
+// 2. Service Layer
+@Service
+public class BankService {
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Transactional // Starts transaction and manages lock lifecycle
+    public void withdrawPessimistic(Long accountId, Double amount) {
+        // This line blocks all other threads trying to touch this exact accountId row
+        Account account = accountRepository.findByIdWithLock(accountId)
+            .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        account.setBalance(account.getBalance() - amount);
+        
+        // The lock is held alive here and only released when this closing bracket is hit (Commit)
+    }
+}
+```
+
+#### Option B: Optimistic Lock (No Database Row Locks, Uses Versioning)
+```java
+// 1. Entity Layer
+@Entity
+public class Account {
+    @Id
+    private Long id;
+    private Double balance;
+
+    @Version // Spring tracks this field to automate version comparison
+    private Long version; 
+}
+
+// 2. Service Layer
+@Service
+public class BankService {
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Transactional
+    public void withdrawOptimistic(Long accountId, Double amount) {
+        // Reads data normally. No database locks are acquired. Anyone else can read/write.
+        Account account = accountRepository.findById(accountId).get();
+        
+        account.setBalance(account.getBalance() - amount);
+        
+        // Upon closing bracket, Spring executes: WHERE id = ? AND version = current_version
+        // If someone beat this thread to the finish line, Spring throws OptimisticLockingFailureException
+    }
+}
+```
+
+
