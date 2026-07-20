@@ -636,3 +636,17 @@ Imagine an Aurora database table is a physical notebook written in ink, where de
 * **Day 1 (Clean Notebook):** You have 5 failed API calls written on lines 1–5. The background worker reads 5 lines, retries them, and crosses them out. This takes milliseconds.
 * **Month 3 (Bloated Notebook):** Over time, you have inserted, retried, and crossed out 1,000,000 failed rows. Currently, you only have 5 active failures that need a retry, but they are written all the way down on page 10,000. Pages 1 through 9,999 are filled entirely with crossed-out "dead space."
 * **The Blocker:** When the retry worker searches for active failures, the database engine **still has to scan through all 10,000 pages of dead space** to locate those 5 valid rows. A query that used to take milliseconds now takes seconds and spikes database CPU to 100%.
+
+
+
+
+
+# 📑 System Design Note: The Schema-per-Service Pattern
+
+## 🗺️ Architectural Context
+In a microservice architecture, managing data isolation is critical. Our engineering team utilizes the **Schema-per-Service** (also known as **Shared Database, Private Schemas**) pattern. This design acts as a practical compromise between the anti-pattern of a completely shared database and the high infrastructure costs of a dedicated database server for every single service.
+
+## 🏗️ How It Works in Our Infrastructure
+We deploy a single, powerful relational database instance (e.g., **Amazon Aurora**). Inside this shared cluster, we draw strict virtual boundaries by assigning each microservice its own independent, isolated database schema.
+
+
