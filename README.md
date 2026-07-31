@@ -1851,3 +1851,171 @@ Now that you understand the core mechanics, you can continue with one of these t
 2. **PACELC Theorem** – Understanding latency vs consistency in distributed systems.
 3. **Animation/Storyboard** – Create a visual teaching script for these concepts.
 
+# System Design: Comprehensive Guide to Consistent Hashing
+
+Consistent hashing is a crucial distributed systems pattern used to distribute data across a cluster of nodes efficiently while minimizing data redistribution when the cluster size changes.
+
+---
+
+## 1. The Core Problem with Simple Hashing
+
+In traditional simple hashing, a key is mapped to a server using a basic modulo operation:
+
+$$\text{Server Index} = \text{hash}(\text{key}) \pmod N$$
+
+Where **$N$** is the total number of active servers. 
+
+### Why Simple Hashing Fails at Scale:
+When the number of servers ($N$) changes (e.g., a server crashes or a new one is added to handle peak traffic), the mathematical denominator shifts. This causes the formula to yield completely different results for almost every single key. As a result, **nearly 100% of your cached data suddenly maps to the wrong servers**, triggering a devastating database slowdown (cache stampede).
+
+---
+
+## 2. The Solution: Consistent Hashing Ring
+
+Consistent hashing solves this by mapping both the **servers** and the **keys** onto a continuous mathematical circle called a **Hash Ring** (typically ranging from $0$ to $2^{32}-1$).
+
+```
+          [Server A (100k)]
+                 /  \
+                /    \
+ [Server C (3.5M)]  [Server B (2M)]
+                \    /
+                 \  /
+             (Hash Ring)
+```
+
+### Real-World Example: Distributed Cache for Profile Pictures
+
+Imagine building a profile picture cache for a social app using **3 cache servers**: `Server A`, `Server B`, and `Server C`.
+
+### Step 1: Building the Ring
+We hash the servers using their IP addresses or names to place them on the ring:
+* `hash("Server A")` = 100,000
+* `hash("Server B")` = 2,000,000
+* `hash("Server C")` = 3,500,000
+
+### Step 2: Routing Keys (Normal Operation)
+When user `alice_99` requests her profile picture, the system looks up which server holds her data:
+1. **Hash the user key**: `hash("alice_99")` = 1,500,000.
+2. **Locate on the ring**: Position 1.5M falls between `Server A` (100k) and `Server B` (2M).
+3. **Walk clockwise**: The system travels clockwise along the ring until it hits the first server.
+4. **Result**: It hits `Server B`. Alice's data is read from/written to `Server B`.
+
+### Step 3: Adding a New Server Efficiently
+If traffic grows and you add `Server D` at position `hash("Server D")` = 3,000,000:
+* **Affected Area**: Only the keys sitting between 2M and 3M are affected. They used to walk clockwise to `Server C`, but now they hit `Server D` first.
+* **Unaffected Area**: `Server A` and `Server B` lose zero data. `Server C` only transfers a small fraction of its keys to `Server D`.
+
+---
+
+## 3. Advanced Mitigation: The Hotspot Problem & Virtual Nodes
+
+If physical servers map to positions right next to each other by pure random chance, one server might end up holding 80% of the ring's space. This is known as a **hotspot** or **data skew**.
+
+To solve this, modern frameworks use **Virtual Nodes (Replicas)**:
+* Instead of placing `Server A` once, the system creates hundreds of virtual tokens (`Server A-1`, `Server A-2`, `Server A-3`, etc.).
+* These tokens are scattered randomly across the entire ring.
+* If a key hits `Server A-57` while walking clockwise, the request maps directly to physical `Server A`.
+
+**Benefit:** The ring's space is sliced into hundreds of tiny alternating segments, guaranteeing a perfectly even distribution of traffic and data across all physical machines.
+
+---
+
+## 4. Python Implementation
+
+Below is a fully functional, executable Python implementation demonstrating the hash ring, server removal, and key redistribution:
+
+```python
+import hashlib
+
+class ConsistentHashRing:
+    def __init__(self, replicas=3):
+        """
+        replicas: Number of virtual nodes per server to ensure 
+                  even distribution across the ring.
+        """
+        self.replicas = replicas
+        self.ring = {}          # Maps {hash_value: server_name}
+        self.sorted_keys = []   # Sorted list of all node hashes on the ring
+
+    def _hash(self, key: str) -> int:
+        """Generates a 32-bit integer hash for a given string."""
+        sha = hashlib.sha256(key.encode('utf-8')).hexdigest()
+        return int(sha, 16) % (2**32)
+
+    def add_server(self, server: str):
+        """Adds a server and its virtual replicas to the hash ring."""
+        for i in range(self.replicas):
+            virtual_node_name = f"{server}-replica-{i}"
+            node_hash = self._hash(virtual_node_name)
+            self.ring[node_hash] = server
+            self.sorted_keys.append(node_hash)
+        self.sorted_keys.sort()
+
+    def remove_server(self, server: str):
+        """Removes a server and its virtual replicas from the hash ring."""
+        for i in range(self.replicas):
+            virtual_node_name = f"{server}-replica-{i}"
+            node_hash = self._hash(virtual_node_name)
+            if node_hash in self.ring:
+                del self.ring[node_hash]
+                self.sorted_keys.remove(node_hash)
+
+    def get_server(self, key: str) -> str:
+        """Finds the closest server clockwise from the key's hash."""
+        if not self.ring:
+            return None
+
+        key_hash = self._hash(key)
+        
+        # Binary search to find the first server hash >= key_hash
+        low, high = 0, len(self.sorted_keys) - 1
+        while low <= high:
+            mid = (low + high) // 2
+            if self.sorted_keys[mid] >= key_hash:
+                high = mid - 1
+            else:
+                low = mid + 1
+        
+        # If key_hash is greater than all hashes on the ring, wrap around to index 0
+        target_index = low if low < len(self.sorted_keys) else 0
+        return self.ring[self.sorted_keys[target_index]]
+
+# --- Execution Example ---
+if __name__ == "__main__":
+    # 1. Initialize ring and add 3 servers
+    hash_ring = ConsistentHashRing(replicas=3)
+    hash_ring.add_server("Server_A")
+    hash_ring.add_server("Server_B")
+    hash_ring.add_server("Server_C")
+
+    # 2. Map sample user keys to servers
+    sample_keys = ["user_101", "user_204", "user_789", "session_abc", "image_99"]
+    print("--- Initial Key Mapping ---")
+    initial_mapping = {}
+    for k in sample_keys:
+        server = hash_ring.get_server(k)
+        initial_mapping[k] = server
+        print(f"Key '{k}' maps to -> {server}")
+
+    # 3. Simulate Server_B going down (or being removed)
+    print("\n--- Removing Server_B ---")
+    hash_ring.remove_server("Server_B")
+
+    # 4. Check redistribution
+    print("--- Post-Removal Key Mapping ---")
+    for k in sample_keys:
+        new_server = hash_ring.get_server(k)
+        status = "STAYED" if initial_mapping[k] == new_server else f"MOVED to {new_server}"
+        print(f"Key '{k}': {status}")
+```
+
+---
+
+## 5. Production Cheat Sheet: Where is it Used?
+
+* **Distributed Caches**: Redis Cluster, Memcached
+* **NoSQL Databases**: Apache Cassandra, Amazon DynamoDB, ScyllaDB
+* **Load Balancers**: NGINX (`hash \$request_uri consistent;`), HAProxy, Envoy Proxy
+
+
