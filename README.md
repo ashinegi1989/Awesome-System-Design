@@ -2130,4 +2130,36 @@ While both tools are extremely fast, they serve completely different purposes in
 
 Because of these differences, most modern applications use a **dual-database setup** where they work together:
 
+### 🔍 The Inverted Index Cheat Sheet
+
+An **Inverted Index** is a data structure that flips document storage upside down. It maps unique words directly to the documents containing them, working exactly like the **index at the back of a textbook**.
+
+---
+
+#### 1. Forward Index (Traditional DB Structure)
+The database looks up the **Document ID** first to see its contents. To find a specific word, it must scan every single row (slow).
+
+*   **Doc 1:** ["love", "data", "science"]
+*   **Doc 2:** ["git", "data", "code"]
+
+---
+
+#### 2. Inverted Index (Search Engine Structure)
+The database flips the mapping. It looks up the **Word** first to instantly get a list of matching Document IDs (lightning fast).
+
+| Unique Word | Document ID List |
+| :--- | :--- |
+| **"code"** | `[Doc 2]` |
+| **"data"** | `[Doc 1, Doc 2]` |
+| **"git"** | `[Doc 2]` |
+| **"love"** | `[Doc 1]` |
+| **"science"**| `[Doc 1]` |
+
+---
+
+#### ⚡ Why it makes Elasticsearch Fast
+If a user searches for the word **"science"**, the search engine doesn't read through millions of documents. It does a single lookup on the table above, instantly finds `[Doc 1]`, and returns it immediately.
+
+
+
 
