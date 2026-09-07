@@ -1,5 +1,7 @@
 
 
+
+
 ========================================================
        CERTIFICATE + PRIVATE KEY WORKFLOW
 ========================================================
@@ -331,3 +333,230 @@ IMPORTANT:
 ✅ Session keys are then used for the actual
    encrypted communication.
 ========================================================
+
+========================================================
+          CLIENT → IDAHO → JWT SIMPLE WORKFLOW
+========================================================
+
+CLIENT has JKS
+----------------
+
+        JKS 👜
+       /      \
+      /        \
+🔑 Private     📜 Certificate
+   Key              |
+                    └── 🔓 Public Key
+
+
+========================================================
+STEP 1 — CLIENT IDENTIFIES ITSELF
+========================================================
+
+CLIENT
+   |
+   | "I am Client ABC"
+   | + Certificate 📜
+   |
+   v
+IDAHO
+
+
+========================================================
+STEP 2 — IDAHO GETS PUBLIC KEY
+========================================================
+
+Idaho receives the Certificate 📜
+
+Certificate
+     |
+     └── 🔓 Public Key
+
+Idaho uses the Public Key to verify
+the client's identity/proof.
+
+
+========================================================
+STEP 3 — PROVE PRIVATE KEY OWNERSHIP
+========================================================
+
+IDAHO
+   |
+   | Random Challenge
+   | "123456"
+   v
+CLIENT
+
+CLIENT uses:
+
+   123456
+      +
+🔑 Private Key
+      |
+      v
+✍️ Digital Signature
+
+
+========================================================
+STEP 4 — CLIENT SENDS SIGNATURE
+========================================================
+
+CLIENT
+   |
+   | Digital Signature ✍️
+   v
+IDAHO
+
+Idaho uses:
+
+🔓 Public Key
+      +
+✍️ Signature
+      |
+      v
+   VERIFY
+      |
+      v
+     ✅
+
+
+Meaning:
+
+"Client really has the Private Key
+associated with this Certificate."
+
+
+========================================================
+STEP 5 — IDENTITY IS VERIFIED
+========================================================
+
+Idaho:
+
+    Certificate trusted?       ✅
+    Identity valid?            ✅
+    Private key proven?        ✅
+
+             |
+             v
+
+       CLIENT AUTHENTICATED
+             ✅
+
+
+========================================================
+STEP 6 — IDAHO ISSUES JWT
+========================================================
+
+IDAHO
+   |
+   | Create JWT
+   | Add client information
+   | Sign JWT ✍️
+   |
+   v
+🎟️ JWT TOKEN
+   |
+   v
+CLIENT
+
+
+========================================================
+STEP 7 — CLIENT CALLS API
+========================================================
+
+CLIENT
+   |
+   | 🎟️ JWT
+   | 🔐 HTTPS/TLS
+   v
+API SERVER
+   |
+   | Verify JWT
+   | Check expiry
+   | Check permissions/scope
+   |
+   v
+✅ ACCESS
+
+
+========================================================
+          WHO DOES WHAT?
+========================================================
+
+🔑 Private Key
+      ↓
+Client uses it to SIGN / prove ownership
+
+🔓 Public Key
+      ↓
+Idaho uses it to VERIFY
+
+📜 Certificate
+      ↓
+Binds identity + Public Key
+and is trusted through the CA
+
+🛡️ Idaho
+      ↓
+Authenticates client
+and issues JWT
+
+🎟️ JWT
+      ↓
+Temporary token used to access APIs
+
+🔐 HTTPS/TLS
+      ↓
+Protects communication while traveling
+
+
+========================================================
+              EASY MEMORY
+========================================================
+
+JKS
+ ↓
+"I have my secret Private Key 🔑"
+
+        ↓
+
+Idaho
+ ↓
+"Prove you own it."
+
+        ↓
+
+Client
+ ↓
+"Here is my Signature ✍️"
+
+        ↓
+
+Idaho
+ ↓
+"Verified ✅"
+
+        ↓
+
+Idaho
+ ↓
+"Here is your JWT 🎟️"
+
+        ↓
+
+Client
+ ↓
+"Use JWT to call API"
+
+        ↓
+
+API
+ ↓
+"JWT valid? ✅"
+========================================================
+
+NOTE:
+The random-challenge step above is a simple
+illustration of proving possession of a private key.
+The exact JPMC/Idaho implementation may use a
+different standard authentication flow.
