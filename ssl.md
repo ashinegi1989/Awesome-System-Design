@@ -1,3 +1,5 @@
+
+
 ========================================================
        CERTIFICATE + PRIVATE KEY WORKFLOW
 ========================================================
@@ -172,4 +174,160 @@ Server:
      the corresponding Private Key."
 
 
+========================================================
+
+========================================================
+              HTTPS / TLS — SIMPLE WORKFLOW
+========================================================
+
+HTTPS
+  |
+  └── Uses TLS
+       |
+       ├── 1. TLS HANDSHAKE 🤝
+       |
+       |      A. IDENTITY CHECK 🪪
+       |         |
+       |         └── Server sends Certificate
+       |              |
+       |              └── Client checks:
+       |                   "Is this really the server?"
+       |
+       |      B. SESSION KEY 🔑
+       |         |
+       |         └── Client + Server establish
+       |              session keys
+       |
+       |
+       └── 2. SECURE COMMUNICATION 🔐
+              |
+              └── Actual data is encrypted
+                  using the session keys
+
+
+========================================================
+                  CERTIFICATE PART
+========================================================
+
+Server
+  |
+  | Certificate 📜
+  | contains Public Key 🔓
+  v
+Client
+  |
+  | Checks certificate
+  | and trusts the CA
+  v
+✅ "This is the correct server"
+
+
+CA = Certificate Authority
+  |
+  └── Confirms:
+      "This certificate/public key belongs
+       to this server."
+
+
+========================================================
+             PRIVATE / PUBLIC KEY
+========================================================
+
+🔑 Private Key
+   |
+   └── Kept SECRET by the owner
+
+🔓 Public Key
+   |
+   └── Can be shared
+
+
+Certificate 📜
+   |
+   └── Contains the Public Key
+       + Identity information
+       + CA's signature
+
+
+========================================================
+              ENCRYPTION PART
+========================================================
+
+During TLS handshake:
+
+Client + Server
+      |
+      └── Establish session key(s) 🔑
+                    |
+                    v
+
+Actual communication:
+
+Client
+  |
+  | "Hello Server"
+  |
+  | 🔐 Encrypt using session key
+  |
+  | "8x#Kp92@..."
+  |
+  v
+Server
+  |
+  | 🔓 Decrypt using session key
+  |
+  v
+"Hello Server"
+
+
+========================================================
+                 EASY MEMORY
+========================================================
+
+🪪 Certificate
+      =
+"WHO IS THE SERVER?"
+
+🤝 TLS Handshake
+      =
+"Let's verify identity AND establish keys."
+
+🔑 Session Key
+      =
+"Secret key for our conversation."
+
+🔐 TLS Encryption
+      =
+"Keep our conversation private."
+
+
+========================================================
+                ONE-LINE FLOW
+========================================================
+
+Client
+  ↓
+TLS Handshake
+  ↓
+🪪 Verify Server Identity
+  ↓
+🔑 Establish Session Keys
+  ↓
+🔐 Encrypted Communication
+  ↓
+Server
+
+
+IMPORTANT:
+--------------------------------------------------------
+
+❌ Certificate does NOT normally encrypt every message.
+
+❌ Public/private keys are NOT normally used to encrypt
+   every piece of HTTPS data.
+
+✅ They are used during the TLS handshake.
+
+✅ Session keys are then used for the actual
+   encrypted communication.
 ========================================================
