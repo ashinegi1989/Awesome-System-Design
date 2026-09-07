@@ -560,3 +560,128 @@ The random-challenge step above is a simple
 illustration of proving possession of a private key.
 The exact JPMC/Idaho implementation may use a
 different standard authentication flow.
+
+
+========================================================
+       PRIVATE KEY → SIGN → PUBLIC KEY → VERIFY
+========================================================
+
+
+1. CLIENT AUTHENTICATION
+------------------------
+
+SERVER / IDAHO
+      |
+      | Challenge
+      v
+   CLIENT
+      |
+      | 🔑 Client Private Key
+      |        ↓
+      |     ✍️ Sign
+      |
+      | Signature
+      v
+SERVER / IDAHO
+      |
+      | 🔓 Client Public Key
+      |        ↓
+      |      Verify
+      v
+     ✅
+
+Meaning:
+
+"Client proved that it owns the Private Key
+associated with its Public Key / Certificate."
+
+
+========================================================
+2. JWT SIGNING
+========================================================
+
+IDAHO
+  |
+  | Creates JWT 🎟️
+  |
+  | 🔑 Idaho Private Key
+  |        ↓
+  |     ✍️ Sign JWT
+  |
+  v
+🎟️ Signed JWT
+  |
+  v
+RESOURCE SERVER
+  |
+  | 🔓 Idaho Public Key
+  |        ↓
+  |      Verify
+  v
+     ✅
+
+Meaning:
+
+"This JWT was genuinely signed by Idaho
+and has not been modified."
+
+
+========================================================
+3. SAME BASIC CRYPTOGRAPHIC CONCEPT
+========================================================
+
+        🔑 PRIVATE KEY
+               |
+               ↓
+             SIGN ✍️
+               |
+               ↓
+            MESSAGE
+               |
+               ↓
+        🔓 PUBLIC KEY
+               |
+               ↓
+           VERIFY ✅
+
+
+========================================================
+4. IMPORTANT DIFFERENCE
+========================================================
+
+CLIENT PRIVATE KEY
+       ↓
+   proves CLIENT
+   identity
+
+
+IDAHO PRIVATE KEY
+       ↓
+   signs JWT
+       ↓
+   proves JWT was issued by Idaho
+
+
+========================================================
+5. EASY MEMORY
+========================================================
+
+🔑 Private Key
+      =
+   "I can SIGN"
+
+🔓 Public Key
+      =
+   "I can VERIFY"
+
+Client Private Key
+      =
+   "I am really this client"
+
+Idaho Private Key
+      =
+   "This JWT really came from Idaho"
+
+
+========================================================
+
