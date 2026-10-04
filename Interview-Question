@@ -1,0 +1,99 @@
+# 🗂️ The Dual Nature of the Sliding Window Algorithm
+
+The **Sliding Window** is a foundational concept in computer science that bridges the gap between **algorithmic efficiency (DSA)** and **high-scale infrastructure (System Design)**.
+
+---
+
+## 🗺️ Architectural Mapping
+
+| Category | Application in Computer Science | Goal | Core Strategy |
+| :--- | :--- | :--- | :--- |
+| **DSA & Coding** | Array / String Optimization | Optimize time complexity from O(N²) to O(N). | Maintain two pointers (`left`, `right`) to expand/shrink a contiguous window without nested loops. |
+| **System Design** | API Rate Limiting | Protect infrastructure against malicious bursts or traffic spikes. | Track a rolling time frame (e.g., last 60 seconds) dynamically to accept or drop traffic. |
+| **Networking** | TCP Flow Control | Prevent a fast sender from overwhelming a slow receiver. | Adjust the receiver's window size advertisement based on buffer availability. |
+
+---
+
+## 🚫 The Problem with Fixed Window Rate Limiting
+
+A **Fixed Window** rate limiter splits time into rigid blocks (e.g., 12:00 to 12:01, 12:01 to 12:02). This creates a critical vulnerability known as the **Burst Problem**.
+
+*   **The Exploit:** If a system limits users to **100 requests per minute**, a client could send 100 requests at `12:00:59` and another 100 requests at `12:01:01`. 
+*   **The Impact:** The client successfully triggers **200 requests within a 2-second window**, potentially crashing the downstream microservices while technically remaining "within limits" for both distinct fixed minutes.
+
+---
+
+## 💡 The Sliding Window Fix
+
+A **Sliding Window** ensures that **at any given timestamp T, the total requests in the window \([T - \text{window\_size}, T]\) never exceed the maximum allowed threshold.**
+
+Engineers implement this pattern in distributed environments (like **Redis**) using two core architectural strategies:
+
+### 1. Sliding Window Log (Exact Precision)
+*   **Mechanism:** Every incoming request appends a timestamp to a data structure (like a Redis Sorted Set `ZSET`).
+*   **Workflow:**
+    1. When a request arrives, remove all elements from the `ZSET` older than T - window\_size using `ZREMRANGEBYSCORE`.
+    2. Count the remaining elements using `ZCARD`.
+    3. If the count is below the threshold, allow the request and add the current timestamp using `ZADD`.
+*   **Pros:** 100% accurate; completely eliminates the burst problem.
+*   **Cons:** High memory footprint. Storing thousands of timestamps per user consumes significant RAM at scale.
+
+### 2. Sliding Window Counter (High Scalability)
+*   **Mechanism:** Instead of tracking exact millisecond timestamps, it blends counters from the **previous window** and the **current window** using a mathematical weight.
+*   **Formula:** 
+    \[\text{Approximate Requests} = (\text{Count}_{\text{prev}} \times \text{Weight}_{\text{prev}}) + \text{Count}_{\text{curr}}\]
+*   **Example Case:** Assume a limit of 100 requests/min. 
+    *   Previous minute had **80 requests**. 
+    *   Current minute has **30 requests** so far.
+    *   The request arrives at the **36th second** of the current minute (60% into the window). The previous window weight is therefore 100% - 60% = 40%.
+    *   Calculated Load = (80 × 0.40) + 30 = 32 + 30 = 62 requests.
+    *   Since 62 < 100, the request is safely processed.
+*   **Pros:** Extremely low memory overhead (only requires a few integer counters per user). Highly favored by platforms like **Cloudflare**.
+*   **Cons:** Slight mathematical approximation (assumes traffic in the previous window was evenly distributed).
+
+---
+
+## 🛠️ Code Reference (LeetCode vs. System Design)
+
+### DSA Pattern (Contiguous Subarray Sum Template)
+```python
+def max_sub_array_of_size_k(k, arr):
+    max_sum, window_sum = 0, 0
+    window_start = 0
+
+    for window_end in range(len(arr)):
+        window_sum += arr[window_end]  # Slide window right (expand)
+        
+        # Shrink the window once we hit the window size 'k'
+        if window_end >= k - 1:
+            max_sum = max(max_sum, window_sum)
+            window_sum -= arr[window_start]  # Subtract the element going out
+            window_start += 1  # Slide window start right
+            
+    return max_sum
+```
+
+### System Design Architecture (Mock Redis Log Implementation)
+```python
+import time
+
+def is_rate_limited(user_id, limit=100, window_size_seconds=60):
+    current_time = time.time()
+    clear_before_time = current_time - window_size_seconds
+    
+    # 1. Clear out-of-window requests from memory/Redis
+    # Redis Command: ZREMRANGEBYSCORE user_id -inf clear_before_time
+    redis_db.zremrangebyscore(user_id, '-inf', clear_before_time)
+    
+    # 2. Fetch total requests in the current sliding window
+    # Redis Command: ZCARD user_id
+    current_request_count = redis_db.zcard(user_id)
+    
+    if current_request_count < limit:
+        # 3. Log the new valid request timestamp
+        # Redis Command: ZADD user_id current_time current_time
+        redis_db.zadd(user_id, {current_time: current_time})
+        return False  # Request allowed
+        
+    return True  # Rate limited!
+```
