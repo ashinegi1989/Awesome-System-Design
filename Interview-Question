@@ -96,4 +96,7 @@ def is_rate_limited(user_id, limit=100, window_size_seconds=60):
         return False  # Request allowed
         
     return True  # Rate limited!
+
+https://www.geeksforgeeks.org/system-design/rate-limiting-algorithms-system-design/
+
 ```
