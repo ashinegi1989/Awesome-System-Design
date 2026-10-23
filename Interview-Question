@@ -100,3 +100,21 @@ def is_rate_limited(user_id, limit=100, window_size_seconds=60):
 https://www.geeksforgeeks.org/system-design/rate-limiting-algorithms-system-design/
 
 ```
+
+google:
+
+1. A query on a 2-billion-row Postgres table took 80 ms. After a routine deploy it takes 14 seconds. What do you check first?
+2. Your Redis hit rate is 92%. In a flash sale it falls to 31% within 40 seconds, and the DB takes 60k QPS it was never built for. What happened?
+3. Payment succeeds, then the inventory service times out. You don't know if it committed. How do you settle it without 2PC?
+4. At 80k events a second you see duplicate event IDs, and the team blames UUID v4 collisions. Are they right?
+5. You add one index to a busy Postgres table. Writes drop 40% for 6 minutes, with no errors in the logs. What happened?
+6. Your gRPC service has a p50 of 42 ms and a p99 of 1.8 seconds. CPU and memory look fine. What do you test first?
+
+SYSTEM DESIGN:
+
+7. Google Maps routing: traffic changes every 30 seconds across 50 million road segments. How do you keep shortest paths fresh?
+8. YouTube shows "1.2M views" and doesn't update on every view. How do you count billions of plays a day?
+9. Search autocomplete in under 100 ms worldwide. A query starts trending in one region. How do suggestions catch up?
+10. Google Drive: two users edit the same file offline and reconnect together. How do you merge without losing data?
+11. Gmail search for 1.8 billion users, where no two users share an index. How do you make it feel instant?
+12. Google Meet at 100k concurrent calls. A user's bandwidth drops mid-call. How do you lower quality without dropping the call?
