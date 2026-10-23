@@ -43,3 +43,65 @@ This document contains the top 10 interview and conceptual architectural questio
 ### 10. Technology Selection & Hype Mitigation
 * **Question:** A senior engineer wants to introduce a trendy new database technology into our stack because it performs incredibly well in a blog post benchmark. How do you evaluate this request?
 * **Answer:** I evaluate technology based on its operational lifecycle costs, day-2 maintainability, and actual problem alignment—not hype. Innovation tokens are expensive. I ask the engineer to write a formal RFC (Request for Comments) addressing key operational questions: How does it handle backups? What are its failure modes? Do we have local debugging tools? Does our current infrastructure/SRE team know how to monitor and scale it at 3 AM? If our existing relational database (e.g., Postgres) can achieve 90% of the required performance through proper indexing, partitioning, or read-replicas, we stick with what we know best to keep operational complexity low.
+
+
+1. Consistent Hashing
+
+• What it does: Distributes data across a cluster of servers dynamically. When a server is added or removed, it minimizes the amount of data that needs to be moved (only moving ~1/N of keys).
+• Why learn it: Essential for building horizontal scaling systems, distributed caches (like Memcached), and load balancers to avoid massive cache invalidation storms when scaling up or down.
+
+2. Gossip Protocol
+
+• What it does: A decentralized communication method where nodes periodically share cluster state information with random peers, letting state updates propagate like a virus.
+• Why learn it: Crucial for understanding how large, decentralized systems (like Cassandra) manage cluster membership, detect node failures, and maintain a shared state without a single point of failure.
+
+3. Snowflake ID
+
+• What it does: Generates unique, time-sorted 64-bit integers across distributed systems without relying on a central database coordinator.
+• Why learn it: Standard pattern for creating highly scalable database primary keys or event IDs (used by Discord and X/Twitter) that naturally sort chronologically.
+
+4. LSM Tree (Log-Structured Merge-Tree)
+
+• What it does: Optimizes database write performance by buffering writes in memory (RAM) and flushing them sequentially to disk in sorted batches (SSTables) later.
+• Why learn it: Underpins write-heavy NoSQL storage engines (like RocksDB, Cassandra, and Bigtable). You need to know this to choose between read-optimized (B-Trees) and write-optimized databases.
+
+5. Write-Ahead Log (WAL)
+
+• What it does: Append-only log where data modifications are written to disk before they are applied to the actual database structures. If the system crashes, it replays this log to recover.
+• Why learn it: The core of ACID compliance and durability in almost all modern databases (PostgreSQL, MySQL, etc.). Essential for troubleshooting data recovery and replication lag.
+
+6. Inverted Index
+
+• What it does: A data structure that maps words directly to the documents or records containing them, rather than mapping documents to words.
+• Why learn it: The foundational technology behind all modern search engines (like Elasticsearch and Lucene). Crucial if your system design requires fast full-text searching, autocomplete, or filtering capabilities.
+
+7. Bloom Filter
+
+• What it does: A space-efficient probabilistic data structure used to test whether an element is definitely not in a set or might be in a set. It gives \(O(1)\) answers without checking the disk.
+• Why learn it: Used to protect databases from costly, unnecessary disk lookups for keys that don't exist. It prevents performance degradation in read-heavy applications.
+
+8. Count-Min Sketch
+
+• What it does: A probabilistic data structure that estimates the frequency of events in a massive, continuous stream of data using minimal memory.
+• Why learn it: Essential for tracking real-time metrics at scale, such as identifying trending topics, tracking top-viewed YouTube videos, or monitoring heavy-hitter IP addresses for DDoS protection.
+
+9. Merkle Tree
+
+• What it does: A tree structure where every leaf node is a cryptographic hash of data, and every non-leaf node is a hash of its children. It allows rapid, secure verification of large data structures.
+• Why learn it: Used by Git for version control, DynamoDB for anti-entropy data sync, and Blockchains. It is the go-to algorithm to efficiently check if two large datasets match and pinpoint exactly where they differ.
+
+10. Raft
+
+• What it does: A consensus algorithm designed to ensure multiple independent nodes agree on a single sequence of state changes (a replicated log) even if some nodes fail.
+• Why learn it: Powers distributed configuration stores like etcd (which manages Kubernetes cluster states) and Consul. Vital for designing highly available systems that cannot afford split-brain scenarios.
+
+11. Vector Clocks
+
+• What it does: A mechanism for generating a partial ordering of events in a distributed system to detect and capture concurrent write conflicts.
+• Why learn it: Crucial for masterless multi-region databases (like Riak or Amazon's original Dynamo paper) where updates happen concurrently in different parts of the world and need to resolve conflicts later.
+
+12. Two-Phase Commit (2PC)
+
+• What it does: An atomic commitment protocol that ensures all participating nodes in a distributed transaction either commit the transaction or abort it together.
+• Why learn it: The traditional standard for distributed consistency. While it guarantees strong consistency, understanding its performance downsides (blocking nature, latency) explains why modern systems lean toward Sagas or eventual consistency.
+
